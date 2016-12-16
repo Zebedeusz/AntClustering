@@ -8,20 +8,21 @@ import javax.imageio.ImageIO;
 
 public class Clusterer 
 {
-	private BufferedImage imageIn;
-	private BufferedImage imageOut;
+	private BufferedImage image;
 	private File file;
 	
 	private int width;
 	private int height;
 	
-	private String fileLocation = "/home/michal/workspace/AntClustering/Pictures/pic_1_clustered";
+	private String fileLocation = "C:/Users/Micha³/git/AntClustering/pic_1_clustered.png";
 
+	private Ant[] ants = new Ant[10];
+	
 	public void setImage(BufferedImage img)
 	{
-		this.imageIn = img;
-		this.width = img.getWidth();
-		this.height = img.getHeight();
+		this.image = img;
+		this.width = img.getWidth() - 1;
+		this.height = img.getHeight() - 1;
 	}
 	
 	public void saveClusteredImage()
@@ -29,7 +30,7 @@ public class Clusterer
 	    try 
 	    {
 	    	file = new File(fileLocation);
-			ImageIO.write(imageOut, "png", file);
+			ImageIO.write(image, "png", file);
 		} 
 	    catch (IOException e) 
 	    {
@@ -39,27 +40,6 @@ public class Clusterer
 	
 	public void clusterPixelsOnImage()
 	{
-		/*ALGORITHM
-		 * 
-		 * randomly scatter o_i object on the grid file - done during image generation
-		 * 
-		 * for each agent a_j (10 agents)
-		 * 	randomly select object o_i (different than white) -> separate method
-		 * 	pick up the object (change pixel value to white, remember pixel carried by agent)
-		 * 	place agent a_j at randomly selected empty place on grid (empty == white)
-		 * 
-		 * for t=1 to t_max (how many iterations -> N - number of items on the grid (currently 4k), t_start = 0.45N, t_end = 0.55N)
-		 * 	randomly select agent a_j
-		 * 	move the agent to new location
-		 * 	i = object carried by the agent
-		 * 	calculate f*(o_i) and p*_drop(o_i)
-		 * 	if (drop == true)
-		 * 		while (pick == false)
-		 * 			i = randomly selected object o_i
-		 * 			calculate f*(o_i) and p*pick(o_i)
-		 * 			pick up object i
-		 */
-		
 		/*IMPLEMENTATION TIPS
 		 * 
 		 * iterations: sqrt(20k*N) > 1M
@@ -81,28 +61,76 @@ public class Clusterer
 		 * 
 		 */
 		
+		/*ALGORITHM
+		 * 
+		 * randomly scatter o_i object on the grid file - done during image generation
+		 * 
+		 * for each agent a_j (10 agents)
+		 * 	randomly select object o_i (different than white) -> separate method
+		 * 	pick up the object (change pixel value to white, remember pixel carried by agent)
+		 * 	place agent a_j at randomly selected empty place on grid (empty == white)
+		 * 
+		 * for t=1 to t_max (how many iterations -> N - number of items on the grid (currently 4k), t_start = 0.45N, t_end = 0.55N)
+		 * 	randomly select agent a_j
+		 * 	move the agent to new location
+		 * 	i = object carried by the agent
+		 * 	calculate f*(o_i) and p*_drop(o_i)
+		 * 	if (drop == true)
+		 * 		while (pick == false)
+		 * 			i = randomly selected object o_i
+		 * 			calculate f*(o_i) and p*pick(o_i)
+		 * 			pick up object i
+		 */
 		
+		for(int i = 0; i < 10; i++)
+		{
+			ants[i] = new Ant();
+			ants[i].selectRandomObject();
+			ants[i].setLocationAsRandomEmpty();
+		}
 		
-		
+		for(int j = 0; j < 48000000; j++)
+		{
+			for(int i = 0; i < 1; i++)
+			{
+			int agentIndex = (int) Math.random()*10;
+			ants[agentIndex].setLocationAsRandomEmpty();
+			
+			if(ants[agentIndex].shouldDrop())
+			{
+				//TODO
+				//System.out.println("dropped" + i);
+				ants[agentIndex].dropObject();
+				
+				do
+				{
+					ants[agentIndex].selectRandomObject();
+				}while(!ants[agentIndex].shouldPick());
+			}
+		}
+			if(j%100000000 == 0)
+				System.out.println(j/100000000);
+		}
 		
 	}
 	
 	class Ant
 	{
-		final int WHITE = (255<<16) | (255<<8) | 255;
+		//final int WHITE = (255<<16) | (255<<8) | 255;
+		final int WHITE = -1;
 		int positionX;
 		int positionY;
-		int carriedObject = 0;
+		int carriedObject;
 		
 		void pickObject()
 		{
-			this.carriedObject = imageIn.getRGB(positionX, positionY);
-			imageIn.setRGB(positionX, positionY, WHITE);
+			this.carriedObject = image.getRGB(positionX, positionY);
+			image.setRGB(positionX, positionY, WHITE);
 		}
 		
 		void dropObject()
 		{
-			imageIn.setRGB(positionX, positionY, carriedObject);
+			image.setRGB(positionX, positionY, carriedObject);
 			this.carriedObject = WHITE;
 		}
 		
@@ -114,7 +142,7 @@ public class Clusterer
 				return true;
 			else
 			{
-				 return (int) 1/Math.pow(objectNeighbourhoodGrade, 2) == 1 ? true : false;
+				 return 1/Math.pow(objectNeighbourhoodGrade, 2) >= 1 ? true : false;
 			}
 				 
 		}
@@ -122,12 +150,15 @@ public class Clusterer
 		boolean shouldDrop()
 		{
 			double objectNeighbourhoodGrade = calculateObjectFunction();
-			
+			//TODO
+			//System.out.println(objectNeighbourhoodGrade);
 			if(objectNeighbourhoodGrade >= 1)
 				return true;
+			else if	(objectNeighbourhoodGrade == 0)
+				return false;
 			else
 			{
-				 return (int) 1/Math.pow(objectNeighbourhoodGrade, 4) == 1 ? true : false;
+				 return 1/Math.pow(objectNeighbourhoodGrade, 4) >= 1 ? true : false;
 			}
 		}
 		
@@ -138,43 +169,55 @@ public class Clusterer
 			double tempSum = 0;
 			int tempObject;
 			
-			int initialHeightIndex = positionY-1;
-			int finalHeightIndex = positionY+ 1;
-			int initialWidthIndex = positionX-1;
+			int initialHeightIndex = positionY - 1;
+			int finalHeightIndex = positionY + 1;
+			int initialWidthIndex = positionX - 1;
 			int finalWidthtIndex = positionX + 1;
 			
 			if(initialHeightIndex == -1)
-				initialHeightIndex = positionY;
+				initialHeightIndex = 0;
 			if(finalHeightIndex == height + 1)
-				finalHeightIndex = positionY;
+				finalHeightIndex = height;
 			if(initialWidthIndex == -1)
-				initialWidthIndex = positionX;
-			if(finalWidthtIndex == height + 1)
-				finalWidthtIndex = positionX;
+				initialWidthIndex = 0;
+			if(finalWidthtIndex == width + 1)
+				finalWidthtIndex = width;
 			
-			
-			for(int  heightIndex = initialHeightIndex; heightIndex <= finalHeightIndex; heightIndex++)
+
+			try
 			{
-				for(int  widthIndex = initialWidthIndex; widthIndex <= finalWidthtIndex; widthIndex++)
+				for(int heightIndex = initialHeightIndex; heightIndex <= finalHeightIndex; heightIndex++)
 				{
-					if(heightIndex == positionY && widthIndex == positionX)
-						continue;
-					tempObject = imageIn.getRGB(widthIndex, heightIndex);
-					
-					if(tempObject != WHITE)
+					for(int  widthIndex = initialWidthIndex; widthIndex <= finalWidthtIndex; widthIndex++)
 					{
-						occupiedNeighbouringCells++;
+						if(heightIndex == positionY && widthIndex == positionX)
+							continue;
+						tempObject = image.getRGB(widthIndex, heightIndex);
 						
-						double tempVar = 1 - (dissimilarity(carriedObject, tempObject)/alpha);
-						
-						if(tempVar <= 0)
-							return 0;
-						
-						tempSum += tempVar;
+						if(tempObject != WHITE)
+						{
+							occupiedNeighbouringCells++;
+							
+							double tempVar = 1 - (dissimilarity(carriedObject, tempObject)/alpha);
+							
+							if(tempVar <= 0)
+								return 0;
+							
+							tempSum += tempVar;
+						}
 					}
+					
+					tempSum /= occupiedNeighbouringCells;
 				}
-				
-				tempSum /= occupiedNeighbouringCells;
+			}
+			
+			catch(IndexOutOfBoundsException e)
+			{
+				System.out.println("initialHeightIndex:" + initialHeightIndex);
+				System.out.println("finalHeightIndex:" + finalHeightIndex);
+				System.out.println("initialWidthIndex:" + initialWidthIndex);
+				System.out.println("finalWidthtIndex:" + finalWidthtIndex);
+				e.printStackTrace();
 			}
 			
 			if(tempSum > 0)
@@ -193,16 +236,13 @@ public class Clusterer
 		
 		void selectRandomObject()
 		{
-			int object = WHITE;
-			
 			do
 			{
 				this.positionX = (int) (Math.random()*width); 
 				this.positionY = (int) (Math.random()*height); 
-				object = imageIn.getRGB(positionX, positionY);
-			}while (object ==WHITE);
+			}while (image.getRGB(positionX, positionY) == WHITE);
 			
-			this.carriedObject = object;
+			pickObject();
 		}
 		
 		void setLocationAsRandomEmpty()
@@ -211,7 +251,9 @@ public class Clusterer
 			{
 				this.positionX = (int) (Math.random()*width); 
 				this.positionY = (int) (Math.random()*height); 
-			}while (imageIn.getRGB(positionX, positionY) == WHITE);
+				//TODO
+				//System.out.println(image.getRGB(positionX, positionY));
+			}while (image.getRGB(positionX, positionY) != WHITE);
 		}
 	}
 }
