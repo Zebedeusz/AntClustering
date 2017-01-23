@@ -89,7 +89,7 @@ public class Clusterer
 			ants[i].setLocationAsRandomEmpty();
 		}
 		
-		for(int j = 0; j < 48000000; j++)
+		for(int j = 0; j < 100000000; j++)
 		{
 			for(int i = 0; i < 1; i++)
 			{
@@ -98,8 +98,6 @@ public class Clusterer
 			
 			if(ants[agentIndex].shouldDrop())
 			{
-				//TODO
-				//System.out.println("dropped" + i);
 				ants[agentIndex].dropObject();
 				
 				do
@@ -164,7 +162,7 @@ public class Clusterer
 		
 		double calculateObjectFunction()
 		{
-			final double alpha = 0.03;
+			final double alpha = 0.003;
 			int occupiedNeighbouringCells = 0;
 			double tempSum = 0;
 			int tempObject;
@@ -251,8 +249,7 @@ public class Clusterer
 			{
 				this.positionX = (int) (Math.random()*width); 
 				this.positionY = (int) (Math.random()*height); 
-				//TODO
-				//System.out.println(image.getRGB(positionX, positionY));
+
 			}while (image.getRGB(positionX, positionY) != WHITE);
 		}
 	}
