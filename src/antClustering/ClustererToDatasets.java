@@ -4,11 +4,9 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-
 import javax.imageio.ImageIO;
-
-import javafx.util.Pair;
 
 public class ClustererToDatasets 
 {
@@ -19,6 +17,7 @@ public class ClustererToDatasets
 	private String fileLocation = "C:/Users/Micha³/git/AntClustering/results/";
 	
 	public String fileName;
+	public String[] classValues;
 	
 	public void setData(List<String[]> data)
 	{
@@ -81,23 +80,23 @@ public class ClustererToDatasets
     	File file = new File(fileLocation + fileName);
     	BufferedImage image = new BufferedImage(dataMatrix.size(), dataMatrix.size(), BufferedImage.TYPE_INT_RGB);
     	
+    	int[] colours = {GREEN, BLUE, RED};
+    	HashMap<String, Integer> classesAndColors = new HashMap<>();
+    	
+    	int k = 0;
+    	for(String classValue : classValues)
+    	{
+    		classesAndColors.put(classValue, colours[k]);
+    		k++;
+    	}
+    	classesAndColors.put("0", WHITE);
+    	
     	for(int i = 0; i < dataMatrix.size(); i++)
     		for(int j = 0; j < dataMatrix.size(); j++)
     		{
-    			switch(dataMatrix.get(i).get(j)[dataMatrix.get(i).get(j).length - 1])
-    			{
-    				case "Iris-setosa":
-    					image.setRGB(i, j, RED);
-    					break;
-    				case "Iris-versicolor":
-    					image.setRGB(i, j, BLUE);
-    					break;
-    				case "Iris-virginica":
-    					image.setRGB(i, j, GREEN);
-    					break;
-    				default:
-    					image.setRGB(i, j, WHITE);
-    			}
+    			String clusteredClass = dataMatrix.get(i).get(j)[dataMatrix.get(i).get(j).length - 1];
+
+    			image.setRGB(i, j, classesAndColors.get(clusteredClass));
     		}
     	
 		try {
@@ -185,7 +184,7 @@ public class ClustererToDatasets
 			}
 			
 		}
-		/*
+		
 		for(Ant agent : ants)
 		{
 			while(!agent.carriedObject.equals(blankExample))
@@ -195,7 +194,7 @@ public class ClustererToDatasets
 				if(agent.shouldDrop())
 					agent.dropObject();
 			}
-		}*/
+		}
 		
 	}
 	
@@ -234,8 +233,9 @@ public class ClustererToDatasets
 			double objectNeighbourhoodGrade = calculateObjectFunction();
 			
 			//System.out.println("pick_P: " + objectNeighbourhoodGrade);
-			
-			if((1 - sigmoid(objectNeighbourhoodGrade)) > 0.85)
+			double p = 1 - sigmoid(objectNeighbourhoodGrade);
+			//if(p*(Math.random()*10+1) > p*(10-(10*p)))
+			if(p > Math.random())
 				shouldPick = true;
 			else
 				dropObject();
@@ -250,7 +250,9 @@ public class ClustererToDatasets
 			double objectNeighbourhoodGrade = calculateObjectFunction();
 
 			//System.out.println("drop_P: " + objectNeighbourhoodGrade);
-			if(sigmoid(objectNeighbourhoodGrade) > 0)
+			double p = sigmoid(objectNeighbourhoodGrade);
+			//if(p*(Math.random()*10+1) > p*(10-(10*p)))
+			if(p > 0)
 				shouldDrop = true;
 			
 			return shouldDrop;
@@ -295,7 +297,7 @@ public class ClustererToDatasets
 					{
 						tempObjectClasses.add(tempObject[tempObject.length - 1]);
 						
-						double tempVar = 1 - (distanceEuclidean(carriedObject, tempObject)/ALPHA);
+						double tempVar = 1 - (distanceCosine(carriedObject, tempObject)/ALPHA);
 						
 						tempSum += tempVar;
 					}
@@ -344,7 +346,7 @@ public class ClustererToDatasets
 			sumOfPow2ComponentsInA = Math.sqrt(sumOfPow2ComponentsInA);
 			sumOfPow2ComponentsInB = Math.sqrt(sumOfPow2ComponentsInB);
 			
-			double distance = ((sumOfMultipliedComponents/(sumOfPow2ComponentsInA*sumOfPow2ComponentsInB)) + 1)/2;
+			double distance = Math.abs(((sumOfMultipliedComponents/(sumOfPow2ComponentsInA*sumOfPow2ComponentsInB)) - 1)/2);
 					
 			return distance;
 		}

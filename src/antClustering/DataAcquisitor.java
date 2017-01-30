@@ -57,7 +57,6 @@ public class DataAcquisitor
     public void initialise(String dataFileName) 
     {
     	this.dataFileName = dataFileName;
-    	this.classValues = new String[10];
 
         this.trainingData = new ArrayList<>();
         this.testData = new ArrayList<>();
@@ -98,7 +97,16 @@ public class DataAcquisitor
     		}
     	}
     	
-    	this.classValues = tempClassValues;
+    	int tempClassesSize = 0;
+    	for(int i = 0; i < tempClassValues.length; i++)
+    		if(tempClassValues[i] != null)
+    			tempClassesSize++;
+    	
+    	this.classValues = new String[tempClassesSize];
+
+    	for(int i = 0; i < tempClassesSize; i++)
+    		this.classValues[i] = tempClassValues[i];
+    		
     	tempClassValues = null;
     	dataFileReader.close();
     }
